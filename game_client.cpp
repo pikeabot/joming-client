@@ -6,6 +6,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <stdlib.h>
 
 using json = nlohmann::json;
 
@@ -49,22 +51,30 @@ int main() {
     sockaddr_in server_address;
 
     client_socket = socket(AF_INET, SOCK_STREAM, 0);
-
+    fcntl(client_socket, F_SETFL, O_NONBLOCK);
+    
     server_address.sin_family = AF_INET;
     server_address.sin_port = htons(8080);
     server_address.sin_addr.s_addr = INADDR_ANY;
 
     connect(client_socket, (struct sockaddr *)&server_address, sizeof(server_address));
 
-    gamephysics::PositionVector p = {0, 10, 188};
-    json j = p;
-    std::cout << j << std::endl;
-    auto j_str = to_string(j);
-    send(client_socket, j_str.data(), j_str.size(), 0);
-    
-    char buffer[1024] = {0};
-    read(client_socket, buffer, sizeof(buffer));
-    std::cout << "Server replied: " << buffer << std::endl;
+    for (;;) {
+        
+        float x = rand() / static_cast<float>(RAND_MAX) * 300.0;
+        float y = rand() / static_cast<float>(RAND_MAX) * 300.0;
+        float z = rand() / static_cast<float>(RAND_MAX) * 300.0;
+        gamephysics::PositionVector p = {x, y, z };
+        json j = p;
+        std::cout << j << std::endl;
+        auto j_str = to_string(j);
+        send(client_socket, j_str.data(), j_str.size(), 0);
+        
+        sleep(1);
+        char buffer[1024] = {0};
+        read(client_socket, buffer, sizeof(buffer));
+        std::cout << "Server replied: " << buffer << std::endl;
+    }
 
     char next_message[1024] = "\\q";
     std::cout << next_message << std::endl;
